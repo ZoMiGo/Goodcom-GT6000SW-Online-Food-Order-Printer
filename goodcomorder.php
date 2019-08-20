@@ -15,17 +15,22 @@ include('../../application/db_config.php');
 	}
 	
 	$resid = isset($_GET['a'])?$_GET['a']:'0';
-	
-	$sql = "select * from device_order where status='new' and resid=$resid limit 1";
+	// STATUS FUNKCIJE (0 = offen) - (1 = Accept) - (5 = Wird Ausgelivert) 
+        $sql = "select * from fooddelivery_bookorder where status='0' and res_id=$resid limit 1";
 	$result = mysqli_query($conn,$sql);
 	if(mysqli_num_rows($result)>0)
 	{
 		$data = '';
 		$row=mysqli_fetch_assoc($result);
-		$orderid = $row['orderid'];
-		
-		$s = "SELECT fb.id,fb.total_price , fb.created_at , fb.address , fb.payment , fb.lat , fb.long , fb.status, count(fd.order_id) as count , fd.ItemId , fu.fullname , fu.phone_no from fooddelivery_bookorder fb inner join fooddelivery_food_desc fd on fb.id = fd.order_id inner join fooddelivery_users fu on fb.user_id = fu.id WHERE fb.id = $resid";
-                $r = mysqli_query($conn,$s);
+		//$orderid = $row['orderid'];
+		$orderid = $row['id'];
+
+		$s = "SELECT fb.id,fb.total_price , fb.created_at , fb.address , fb.payment , fb.lat , fb.long , fb.status, count(fd.order_id) as count , fd.ItemId , fu.fullname , fu.phone_no  from 
+        fooddelivery_bookorder fb inner join fooddelivery_food_desc fd on fb.id = fd.order_id 
+        inner join fooddelivery_users fu on fb.user_id = fu.id
+        WHERE fb.id = $orderid";
+
+		$r = mysqli_query($conn,$s);
 		$row1=mysqli_fetch_assoc($r);
 		
 		if($row1['status'] == '2'){
