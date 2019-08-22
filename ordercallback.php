@@ -1,5 +1,5 @@
 <?php
-include('../../application/db_config.php');
+include('../application/db_config.php');
 //callback a=AC0001&o=10004&ak=Accepted&m=OK&dt=17:10&u=testuser&p=test
 /**
  * Created by Alex Media.
