@@ -1,12 +1,12 @@
 <?php
-include('../../application/db_config.php');
-
+include('../application/db_config.php');
 /**
  * Created by Alex Media.
  * User: Goran Trajilovic
- * Date: 20/08/19
- * Time: 22:28
+ * Date: 22/08/19
+ * Time: 08:28
  */
+	$resid = isset($_GET['a'])?$_GET['a']:'0';
 
 	if (mysqli_connect_errno()) {
 		$data = array("Code"=>403,"Message"=>"Could not connect with database","Status"=>"error");
@@ -14,8 +14,7 @@ include('../../application/db_config.php');
 		exit;
 	}
 	
-	$resid = isset($_GET['a'])?$_GET['a']:'0';
-	// STATUS FUNKCIJE (0 = offen) - (1 = Accept) - (5 = Wird Ausgelivert) 
+
         $sql = "select * from fooddelivery_bookorder where status='0' and res_id=$resid limit 1";
 	$result = mysqli_query($conn,$sql);
 	if(mysqli_num_rows($result)>0)
@@ -25,7 +24,7 @@ include('../../application/db_config.php');
 		//$orderid = $row['orderid'];
 		$orderid = $row['id'];
 
-		$s = "SELECT fb.id,fb.total_price , fb.created_at , fb.address , fb.payment , fb.lat , fb.long , fb.status, count(fd.order_id) as count , fd.ItemId , fu.fullname , fu.phone_no  from 
+		$s = "SELECT fb.id,fb.total_price,fb.delivery_date_time,  fb.created_at , fb.address , fb.payment , fb.lat , fb.long , fb.status, count(fd.order_id) as count , fd.ItemId , fu.fullname , fu.phone_no  from 
         fooddelivery_bookorder fb inner join fooddelivery_food_desc fd on fb.id = fd.order_id 
         inner join fooddelivery_users fu on fb.user_id = fu.id
         WHERE fb.id = $orderid";
@@ -33,15 +32,15 @@ include('../../application/db_config.php');
 		$r = mysqli_query($conn,$s);
 		$row1=mysqli_fetch_assoc($r);
 		
-		if($row1['status'] == '2'){
-			$method = 2;
+		if($row1['status'] == '0'){
+			$method = 0;
 		}
 		
 		if($row1['status'] == '1'){
 			$method = 1;
 		}
 		
-		$data = '#1*'.$method.'*'.$resid.'*';
+		$data = '#1*'.$method.'*'.$orderid.'*';
 
 		$order = "SELECT fd.order_id,fd.ItemId , fd.ItemQty , fd.ItemAmt , fs.id , fs.name , fs.desc from fooddelivery_food_desc fd inner join fooddelivery_submenu fs on fd.ItemId = fs.id WHERE fd.order_id = $resid";
                 $order_result = mysqli_query($conn,$order);
@@ -52,11 +51,11 @@ include('../../application/db_config.php');
 			$data .= $order_row['name'].';';
 			$data .= $order_row['ItemAmt'].';';
 
-			$extra = "SELECT extras,spice_level,extra_price FROM `extras` WHERE ordersid=$ordersid";
+			$extra = "SELECT extra,spice,extra_price FROM `extras` WHERE res_id=$ordersid";
 			$extra_result = mysqli_query($conn,$extra);
 			while($extra_row = mysqli_fetch_assoc($extra_result)){
-				if($extra_row['extras'] != ''){
-					$extra_data = explode(',',$extra_row['extras']);
+				if($extra_row['extra'] != ''){
+					$extra_data = explode(',',$extra_row['extra']);
 					$price_data = explode(',',$extra_row['extra_price']);
 					$length = count($extra_data);
 					for($i = 0; $i<$length; $i++){
@@ -64,8 +63,8 @@ include('../../application/db_config.php');
 					}
 				}
 				
-				if($extra_row['spice_level']!='')
-					$data .= "1;".$extra_row['spice_level'].';---;';
+				if($extra_row['spice']!='')
+					$data .= "1;".$extra_row['spice'].';---;';
 			}
 		}
 		
@@ -77,16 +76,14 @@ include('../../application/db_config.php');
 		if($row1['payment'] == 'COD'){
 			$c = 7;
 		}
-		
 		$data .= '*0*0;';
 		$data .= $row1['total_price'].';4;';
 		$data .= $row1['fullname'].';';
-		$data .= $row1['address'].';'.$row1['$date_time'].'22/08/2019 16:22;;';
-		$data .= $c.";;";
-		$data .= $row1['phone_no'].';0x0D0x0A#';
+		$data .= $row1['address'].';'.$row1['delivery_date_time'].';113;';
+		$data .= $c.";cod:;";
+		$data .= $row1['phone_no'].';*Comment#';
 		send_to_printer($data);
 	}
-	
 	function send_to_printer($content)
 	{
 		$isRange = '';
@@ -130,14 +127,6 @@ include('../../application/db_config.php');
 			{
 				ob_get_clean(); //added to fix ZIP file corruption
 				ob_start(null, 0,PHP_OUTPUT_HANDLER_REMOVABLE);
-				/*if (version_compare(PHP_VERSION, '5.4.0', '>=')) {
-				  ob_start(null, 0, PHP_OUTPUT_HANDLER_STDFLAGS ^
-					PHP_OUTPUT_HANDLER_REMOVABLE);
-				} else {
-				  ob_start(null, 0, false);
-				}*/
-			
-			
 				$contentRange="bytes ".($startBytes)."-".($toBytes)."/".($contentLength);
 				$rangesize = ($toBytes+1 - $startBytes) > 0 ? ($toBytes+1 - $startBytes) : 0;  
 				
@@ -160,12 +149,14 @@ include('../../application/db_config.php');
 				
 			}
 		}
-		else
+		else 
+
 		{
+
 			$startBytes=0;
 			$toBytes=$contentLength;
 			$sStr1 = substr($content, $startBytes, $toBytes);
-			print substr($sStr1,$startBytes+1-1,$toBytes+1-$startBytes);
+			print substr($sStr1,$startBytes+1-1,$toBytes+1-$startBytes); 
 		}
 	} 
 	
@@ -173,3 +164,4 @@ include('../../application/db_config.php');
 		ob_flush();
 		flush();
 	}
+
